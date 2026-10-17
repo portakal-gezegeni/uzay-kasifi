@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Uzay Kaşifi – Fen Oyunu</title>
+<style>
+:root{--bg:#020617;--card:rgba(15,23,42,.94);--tx:#f1f5f9;--ac:#22d3ee;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#020617;--card:rgba(15,23,42,.94);--tx:#f1f5f9;--ac:#22d3ee;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#020617;--card:rgba(15,23,42,.94);--tx:#f1f5f9;--ac:#22d3ee}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:flex;justify-content:center;overflow:hidden;user-select:none;-webkit-user-select:none}
+#app{position:relative;height:100%;aspect-ratio:480/760;max-width:100%}
+canvas{width:100%;height:100%;display:block;touch-action:none}
+#ov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:1em}
+.card{background:var(--card);border:2px solid var(--ac);border-radius:1.2em;padding:1.2em 1.3em;text-align:center;width:100%;max-width:26em;box-shadow:0 0 40px rgba(34,211,238,.25)}
+.card h1{margin:0 0 .3em;font-size:2em}.card p{margin:.4em 0;line-height:1.45}
+.big{font-size:1.1em}
+button.b{background:var(--ac);color:#04212a;border:0;border-radius:.8em;padding:.7em 1.6em;font:inherit;font-weight:800;font-size:1.15em;cursor:pointer;margin:.6em .2em}
+.sk{display:flex;gap:.5em;justify-content:center;margin:.5em 0}
+.sk button{width:3.6em;height:3.6em;border-radius:.8em;border:2px solid #334155;background:#0f172a;color:var(--tx);font-size:1.3em;cursor:pointer;line-height:1.1}
+.sk button.on{border-color:var(--ac);box-shadow:0 0 12px var(--ac)}.sk button:disabled{opacity:.5;font-size:.8em}
+small{color:#94a3b8}
+.chip{display:inline-block;background:#1e293b;border-radius:2em;padding:.15em .8em;font-size:.9em;margin-bottom:.4em}
+.miss{text-align:left;margin:.5em 0;font-size:.95em}
+#mu{position:absolute;right:.6em;bottom:.6em;z-index:5;width:2.6em;height:2.6em;border-radius:50%;border:2px solid #334155;background:rgba(15,23,42,.8);color:#fff;font-size:1.1em;cursor:pointer}
+</style>
+</head>
+<body>
+<div id="app"><canvas id="c"></canvas><div id="ov"></div><button id="mu" title="Müzik">🔊</button></div>
+<script>
+/* YENİ SORU EKLEMEK İÇİN: Q dizisine [konu no, soru, doğru cevap, [3 yanlış], bilgi] ekle. */
+const TN=[["☀️","Güneş","#7c2d12"],["🌙","Ay","#312e81"],["🌍","Dünya ve Komşularımız","#0c4a6e"],["💪","Kuvvet","#581c87"],["⚖️","Kütle ve Ağırlık","#064e3b"],["🛷","Sürtünme","#831843"]];
+const Q=[
+[0,"Güneş nedir?","Yıldız",["Gezegen","Uydu","Kuyruklu yıldız"],"Güneş, kendi ışığını üreten bir yıldızdır."],
+[0,"Güneş hangi gazlardan oluşur?","Hidrojen ve helyum",["Oksijen ve azot","Karbondioksit","Su buharı"],"Güneş büyük ölçüde hidrojen ve helyum gazlarından oluşur."],
+[0,"Güneş’in döndüğünü ne gösterir?","Güneş lekelerinin hareketi",["Ay’ın evreleri","Mevsimler","Gece ve gündüz"],"Lekeler yer değiştirdiği için Güneş kendi etrafında döner."],
+[0,"Güneş lekeleri çevresine göre nasıldır?","Daha soğuk",["Daha sıcak","Aynı sıcaklıkta","Daha parlak"],"Lekeler çevresinden daha soğuk olduğu için koyu görünür."],
+[1,"Ay’ın ışığı nereden gelir?","Güneş’ten yansır",["Kendi üretir","Dünya’dan gelir","Yıldızlardan gelir"],"Ay ışık üretmez, Güneş ışığını yansıtır."],
+[1,"Ay’ın tamamı aydınlık görünüyorsa evre nedir?","Dolunay",["Yeni Ay","İlk Dördün","Son Dördün"],"Tamamı aydınlık görünen evreye dolunay denir."],
+[1,"Ay’ın evre döngüsü yaklaşık kaç gündür?","29–30 gün",["7 gün","365 gün","12 saat"],"Ay’ın evreleri yaklaşık 29–30 günde tekrar eder."],
+[1,"Ay’ın yüzeyinde hangisi vardır?","Kraterler",["Okyanuslar","Ormanlar","Nehirler"],"Ay’da kraterler, dağlar ve düzlükler bulunur."],
+[2,"Büyükten küçüğe doğru sıralama hangisi?","Güneş – Dünya – Ay",["Ay – Dünya – Güneş","Dünya – Güneş – Ay","Güneş – Ay – Dünya"],"Güneş en büyük, Dünya orta, Ay en küçüktür."],
+[2,"Dünya hangi türdür?","Gezegen",["Yıldız","Uydu","Kuyruklu yıldız"],"Dünya, Güneş etrafında dönen bir gezegendir."],
+[2,"Ay hangi türdür?","Doğal uydu",["Gezegen","Yıldız","Göktaşı"],"Ay, Dünya’nın doğal uydusudur."],
+[2,"Hangisi kendi ışığını üretir?","Güneş",["Ay","Dünya","Uydular"],"Yalnızca Güneş (yıldız) ışık kaynağıdır."],
+[3,"Kuvvet nedir?","İtme veya çekme",["Isı","Işık","Ses"],"Kuvvet, bir cisme uygulanan itme ya da çekmedir."],
+[3,"Kuvvetin birimi hangisidir?","Newton (N)",["Kilogram","Metre","Litre"],"Kuvvet newton (N) ile ölçülür."],
+[3,"Kuvvet hangi aletle ölçülür?","Dinamometre",["Terazi","Cetvel","Termometre"],"Kuvveti yaylı kuvvet ölçer, yani dinamometre ölçer."],
+[3,"Hangisi temassız kuvvettir?","Mıknatıs kuvveti",["İtme","Çekme","Sürtünme"],"Mıknatıs ve yerçekimi dokunmadan etki eder."],
+[4,"Ağırlığın birimi hangisidir?","Newton (N)",["Kilogram","Litre","Metre"],"Ağırlık bir kuvvettir; birimi newtondur."],
+[4,"Astronot Ay’a gidince neresi değişmez?","Kütlesi",["Ağırlığı","Yerçekimi","Bastığı yer"],"Kütle her yerde aynıdır; ağırlık yere göre değişir."],
+[4,"Kütle hangi aletle ölçülür?","Terazi",["Dinamometre","Cetvel","Saat"],"Kütle terazi ile, ağırlık dinamometre ile ölçülür."],
+[4,"5 kg’lık cismin Dünya’daki ağırlığı yaklaşık?","50 N",["5 N","15 N","500 N"],"Dünya’da 1 kg yaklaşık 10 N’dur: 5 × 10 = 50 N."],
+[5,"Sürtünme kuvvetinin yönü nasıldır?","Harekete zıt",["Hareketle aynı","Hep yukarı","Hep aşağı"],"Sürtünme hareketi zorlaştırır, harekete zıt yöndedir."],
+[5,"Sürtünme en az hangi yüzeyde olur?","Buz",["Halı","Zımpara","Çimen"],"Pürüzsüz yüzeylerde sürtünme azdır."],
+[5,"Hangisi sürtünmeyi azaltır?","Yağlama",["Kaymaz taban","Zımpara kaplama","Dişli lastik"],"Yağlama ve tekerlek sürtünmeyi azaltır."],
+[5,"Sürtünmenin yararı hangisidir?","Yürüyebilmek",["Aşınma","Isınma","Enerji kaybı"],"Sürtünme olmasaydı yürüyemez, duramazdık."]
+];
+TN.push(["🌀","Esnek Cisimler ve Yaylar","#134e4a"]);
+const NEW=`0|Güneş’in Dünya için önemi nedir?|Işık ve ısı kaynağıdır|Ses kaynağıdır|Su kaynağıdır|Rüzgâr kaynağıdır|Güneş, Dünya’nın ışık ve ısı kaynağıdır.
+0|Güneş sistemindeki en büyük gök cismi hangisidir?|Güneş|Dünya|Jüpiter|Ay|Güneş, sistemin merkezinde ve en büyük gök cismidir.
+0|Güneş’in yüzeyindeki koyu bölgelere ne denir?|Güneş lekeleri|Kraterler|Gölgeler|Bulutlar|Çevresinden soğuk koyu bölgelere Güneş lekeleri denir.
+0|Güneş kendi ekseni etrafında ne yapar?|Döner|Sabit durur|Küçülür|Soğur|Güneş de kendi etrafında döner.
+0|Gündüz Dünya’yı ne aydınlatır?|Güneş|Ay|Yıldızlar|Gezegenler|Gündüz ışığı Güneş verir.
+0|Güneş hangi hâldedir?|Gaz|Katı|Sıvı|Buz|Güneş sıcak gazlardan oluşur.
+0|Güneş’i oluşturan gazlardan biri hangisidir?|Helyum|Oksijen|Azot|Neon|Güneş hidrojen ve helyum gazlarından oluşur.
+0|Güneş’e çıplak gözle doğrudan bakılırsa ne olur?|Gözlere zarar verir|Gözler güçlenir|Hiçbir şey olmaz|Görme artar|Güneş’e doğrudan bakmak gözlere zarar verir.
+1|Ay’ın hep aynı yüzünü görmemizin nedeni nedir?|Dönme ve dolanma süresi eşittir|Ay hiç dönmez|Dünya durur|Ay çok uzaktır|Ay kendi etrafındaki turunu Dünya etrafındaki turuyla yaklaşık aynı sürede atar.
+1|Ay’ın evreleri neden oluşur?|Ay’ın Dünya etrafında dolanması|Dünya’nın gölgesi|Bulutlar|Güneş’in sönmesi|Dolanırken bize görünen aydınlık kısım değişir.
+1|Ay’ın hiç görünmediği evre hangisidir?|Yeni Ay|Dolunay|İlk Dördün|Son Dördün|Yeni Ay’da aydınlık yüz bize bakmaz.
+1|Ay’ın sağ yarısı aydınlık görünüyorsa evre nedir?|İlk Dördün|Son Dördün|Dolunay|Yeni Ay|Sağ yarısı aydınlık olan evre İlk Dördün’dür.
+1|Ay’ın sol yarısı aydınlık görünüyorsa evre nedir?|Son Dördün|İlk Dördün|Dolunay|Yeni Ay|Sol yarısı aydınlık olan evre Son Dördün’dür.
+1|Ay’ın ana evre sıralaması hangisidir?|Yeni Ay – İlk Dördün – Dolunay – Son Dördün|Dolunay – Yeni Ay – İlk Dördün – Son Dördün|İlk Dördün – Yeni Ay – Son Dördün – Dolunay|Son Dördün – İlk Dördün – Yeni Ay – Dolunay|Sıra: Yeni Ay, İlk Dördün, Dolunay, Son Dördün.
+1|Yeni Ay’dan sonra gelen ana evre hangisidir?|İlk Dördün|Dolunay|Son Dördün|Yeni Ay|Yeni Ay’dan sonra İlk Dördün gelir.
+1|Dolunaydan sonra gelen ana evre hangisidir?|Son Dördün|İlk Dördün|Yeni Ay|Dolunay|Dolunaydan sonra Son Dördün gelir.
+1|Ay’ın yüzeyindeki çukurlara ne denir?|Krater|Vadi|Göl|Dağ|Ay’daki çukurlara krater denir.
+1|Ay’da kraterlerin çok korunmasının nedeni nedir?|Atmosfer ve su yoktur|Çok yağmur yağar|Rüzgâr çok eser|Bitkiler büyür|Atmosfer ve su olmadığı için kraterler aşınmaz.
+1|Ay’ın Dünya etrafında dönmesine ne denir?|Dolanma|Dönme|Yansıma|Erime|Dünya etrafındaki harekete dolanma denir.
+1|Ay’ın kendi ekseni etrafında dönmesine ne denir?|Dönme|Dolanma|Yansıma|Erime|Kendi etrafındaki harekete dönme denir.
+1|Ay’ın Güneş’e bakan yarısı nasıldır?|Aydınlıktır|Karanlıktır|Buzludur|Görünmezdir|Güneş’e bakan yarı hep aydınlıktır; biz bir kısmını görürüz.
+2|Dünya’nın kaç doğal uydusu vardır?|1|2|8|Hiç yok|Dünya’nın tek doğal uydusu Ay’dır.
+2|Dünya, Güneş’in etrafında ne yapar?|Dolanır|Durur|Erir|Sönük kalır|Gezegenler Güneş’in etrafında dolanır.
+2|Dünya’nın kendi etrafında dönmesiyle ne oluşur?|Gece ve gündüz|Ay evreleri|Yağmur|Yıldızlar|Dönme gece ve gündüzü oluşturur.
+2|Dünya’ya en yakın doğal gök cismi hangisidir?|Ay|Güneş|Mars|Jüpiter|Ay, Dünya’ya en yakın gök cismidir.
+2|Güneş, Dünya’dan ne kadar uzaktır?|Yaklaşık 150 milyon km|1000 km|384 bin km|Ay kadar yakın|Güneş çok büyük ama çok uzaktır.
+2|Ay’ın Dünya’ya uzaklığı yaklaşık kaçtır?|384 bin km|150 milyon km|384 km|1 milyon km|Ay, Dünya’ya yaklaşık 384 bin km uzaktadır.
+2|Hangisi gezegendir?|Dünya|Güneş|Ay|Kuyruklu yıldız|Dünya bir gezegendir.
+2|Hangisi doğal uydudur?|Ay|Dünya|Güneş|Mars|Ay, Dünya’nın doğal uydusudur.
+3|Kuvvet bir cismin neyini değiştirebilir?|Hareketini ve şeklini|Rengini|Tadını|Kokusunu|Kuvvet hareketi ve şekli değiştirebilir.
+3|Duran bir cismi hareket ettirmek için ne gerekir?|Kuvvet|Işık|Ses|Isı|Hareket başlatmak için kuvvet gerekir.
+3|Hangisi itme kuvvetine örnektir?|Kapıyı itmek|Çekmeceyi açmak|Halat çekmek|Zincir çekmek|Kapıyı itmek itme kuvvetidir.
+3|Hangisi çekme kuvvetine örnektir?|Çekmeceyi açmak|Kapıyı itmek|Arabayı itmek|Topa vurmak|Çekmeceyi açmak çekme kuvvetidir.
+3|Hareket hâlindeki bir cisim nasıl durdurulabilir?|Kuvvet uygulayarak|Işıkla|Sesle|Hiçbir şekilde|Durdurmak için de kuvvet gerekir.
+3|Hangisi temaslı kuvvettir?|Sürtünme kuvveti|Mıknatıs kuvveti|Yerçekimi|Elektrik kuvveti|Sürtünme dokunarak etki eder.
+3|Yerçekimi cisimleri nereye çeker?|Dünya’nın merkezine|Gökyüzüne|Güneş’e|Ay’a|Yerçekimi cisimleri Dünya’nın merkezine çeker.
+3|Kuvvetin birim sembolü hangisidir?|N|kg|m|s|Kuvvet newton (N) ile ölçülür.
+6|Esnek cisim nedir?|Kuvvet kalkınca eski şekline dönen cisim|Kırılan cisim|Sıvı cisim|Eriyen cisim|Esnek cisimler kuvvet kalkınca eski hâline döner.
+6|Hangisi esnek cisimdir?|Yay|Taş|Cam|Tuğla|Yay esnek bir cisimdir.
+6|Hangisi esnek bir cisim değildir?|Taş|Lastik|Yay|Sünger|Taş esnek değildir, sert bir cisimdir.
+6|Yaya kuvvet uygulanınca ne olur?|Uzar veya sıkışır|Erir|Renk değiştirir|Kaybolur|Yay kuvvetle uzar ya da sıkışır.
+6|Dinamometrenin içinde ne bulunur?|Yay|Ayna|Mıknatıs|Terazi kefesi|Dinamometre yaylı bir kuvvet ölçerdir.
+6|Dinamometreye asılan yük artarsa yay ne olur?|Daha çok uzar|Kısalır|Değişmez|Kırılır|Kuvvet arttıkça yay daha çok uzar.
+6|Daha hassas ölçüm için nasıl bir yay kullanılır?|İnce yay|Kalın yay|Kırık yay|Yaysız|İnce yay küçük kuvvetlerde bile belirgin uzar.
+6|Küçük kuvvetleri ölçmek için hangi dinamometre uygundur?|İnce yaylı (hassas)|Kalın yaylı|Yaysız|Kırık|Küçük kuvvetler için ince yaylı hassas dinamometre kullanılır.
+6|Büyük kuvvetleri ölçmek için hangi yay uygundur?|Kalın yay|İnce yay|Kâğıt|Hiç yay|Kalın yay zor uzar, büyük kuvvetleri ölçer.
+6|Aynı kuvvetle çekilince hangi yay daha çok uzar?|İnce yay|Kalın yay|İkisi eşit uzar|Hiçbiri|İnce yay, kalın yaydan daha kolay uzar.
+6|Dinamometre kuvveti neye göre gösterir?|Yayın uzamasına|Yayın rengine|Yayın sesine|Yayın kokusuna|Kuvvet büyüdükçe yayın uzaması artar.
+6|Hangisinde yay kullanılır?|Tükenmez kalem|Cetvel|Tahta|Taş|Tükenmez kalemin ucunu yay çıkarır.
+6|Bir yay çok fazla gerilirse ne olabilir?|Eski hâline dönemez|Daha güçlenir|Kısalır|Renk alır|Aşırı gerilen yay esnekliğini kaybedebilir.
+6|Sünger sıkıştırılıp bırakılırsa ne olur?|Eski şeklini alır|Kırılır|Erir|Yok olur|Sünger esnek bir cisimdir.
+4|Madde miktarına ne denir?|Kütle|Ağırlık|Hacim|Sıcaklık|Madde miktarı kütledir.
+4|Yerçekimi kuvvetinin cisme etkisine ne denir?|Ağırlık|Kütle|Hız|Sürat|Ağırlık, yerçekiminin cisme uyguladığı kuvvettir.
+4|Kütlenin birimi hangisidir?|Kilogram (kg)|Newton (N)|Litre|Metre|Kütle kilogram ile ölçülür.
+4|Ağırlık hangi aletle ölçülür?|Dinamometre|Terazi|Cetvel|Saat|Ağırlık bir kuvvettir, dinamometre ölçer.
+4|Ay’da astronotun ağırlığı Dünya’ya göre nasıldır?|Daha azdır|Daha fazladır|Aynıdır|Sıfırdır|Ay’ın çekimi daha az olduğu için ağırlık azalır.
+4|Ay’ın çekim kuvveti Dünya’ya göre nasıldır?|Daha azdır|Daha fazladır|Aynıdır|Yoktur|Ay’ın çekimi Dünya’nın yaklaşık altıda biridir.
+4|10 kg kütleli cismin Dünya’daki ağırlığı yaklaşık kaçtır?|100 N|10 N|1 N|1000 N|Dünya’da 1 kg yaklaşık 10 N’dur.
+4|Ağırlığı 30 N olan cismin kütlesi yaklaşık kaçtır?|3 kg|30 kg|300 kg|0,3 kg|30 ÷ 10 = 3 kg.
+4|Cisim Ay’a götürülünce kütlesi ne olur?|Değişmez|Artar|Azalır|Sıfır olur|Kütle yer değiştirince değişmez.
+4|Terazi neyi ölçer?|Kütleyi|Ağırlığı|Kuvveti|Hızı|Terazi kütle ölçer.
+5|Sürtünme kuvveti hareketi ne yapar?|Zorlaştırır|Hızlandırır|Başlatır|Yok eder|Sürtünme harekete zıt yöndedir.
+5|Pürüzlü yüzeyde sürtünme nasıldır?|Fazladır|Azdır|Yoktur|Sıfırdır|Yüzey pürüzlendikçe sürtünme artar.
+5|Sürtünme en çok hangi yüzeyde olur?|Zımpara|Buz|Cam|Cilalı mermer|Zımpara çok pürüzlüdür.
+5|Ellerimizi birbirine sürtünce neden ısınır?|Sürtünme|Yerçekimi|Mıknatıs|Işık|Sürtünme ısı açığa çıkarır.
+5|Sürtünmeyi azaltmak için ne yapılır?|Yüzeyi yağlarız|Yüzeyi pürüzlendiririz|Kum döker|Zımpara koyarız|Yağlama sürtünmeyi azaltır.
+5|Buzda yürümek neden zordur?|Sürtünme azdır|Sürtünme çoktur|Yerçekimi yoktur|Işık yansır|Buz pürüzsüzdür, sürtünme azdır.
+5|Karlı yolda araç lastiğine ne takılır?|Zincir|Cam|Ayna|Balon|Zincir sürtünmeyi artırır.
+5|Kaymaz taban sürtünmeyi nasıl etkiler?|Artırır|Azaltır|Yok eder|Değiştirmez|Kaymaz taban sürtünmeyi artırır.
+5|Sürtünme olmasaydı ne olurdu?|Yürüyemezdik|Daha hızlı koşardık|Hep uçardık|Hiç yorulmazdık|Sürtünme olmasa yürüyemez ve duramazdık.
+5|Hangisi sürtünmenin zararıdır?|Aşınma|Yürüme|Fren yapma|Kibrit yakma|Sürtünme eşyaları aşındırır.
+5|Hangisi sürtünmenin yararıdır?|Kibrit yakabilmek|Lastiğin aşınması|Makinelerin ısınması|Ayakkabının aşınması|Kibrit sürtünmeyle yanar.
+5|Tekerlek sürtünmeyi nasıl etkiler?|Azaltır|Artırır|Yok eder|Değiştirmez|Tekerlek sürtünmeyi azaltır.
+5|Sürtünme hangi cisimler arasında oluşur?|Temas eden iki yüzey|Uzak iki cisim|Hava|Işık|Sürtünme temas eden yüzeyler arasındadır.
+1|Ay’ın arka yüzünü Dünya’dan görebilir miyiz?|Hayır, hep aynı yüzünü görürüz|Evet, her gün|Sadece dolunayda|Sadece Yeni Ay’da|Ay’ın bir yüzü hep Dünya’ya bakar.
+5|Pürüzsüz yüzeyde sürtünme nasıldır?|Azdır|Fazladır|Çok fazladır|Sonsuzdur|Yüzey pürüzsüzleştikçe sürtünme azalır.`;
+NEW.trim().split("\n").forEach(l=>{const a=l.split("|");Q.push([+a[0],a[1],a[2],[a[3],a[4],a[5]],a[6]])});
+const $=s=>document.querySelector(s),cv=$("#c"),cx=cv.getContext("2d"),W=480,H=760;cv.width=W;cv.height=H;
+const SK=["🚀","🛸","🪐","👽"],SKP=[0,150,400,800],LX=[90,240,390],LC=["#2563eb","#ea580c","#9333ea"];
+let S={};try{S=JSON.parse(localStorage.getItem("uzay"))||{}}catch(e){}
+S.best=S.best||0;S.total=S.total||0;S.skin=S.skin||0;
+const save=()=>{try{localStorage.setItem("uzay",JSON.stringify(S))}catch(e){}};
+let g=null,parts=[],keys={},tx=W/2,ty=H-80,mode="menu",ac;
+const stars=[...Array(70)].map(()=>({x:Math.random()*W,y:Math.random()*H,s:Math.random()*2+.5}));
+const sh=a=>a.map(x=>[Math.random(),x]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]);
+const beep=(f,d,t)=>{try{ac=ac||new AudioContext();const o=ac.createOscillator(),v=ac.createGain();o.type=t||"sine";o.frequency.value=f;v.gain.value=.07;o.connect(v);v.connect(ac.destination);o.start();o.stop(ac.currentTime+d)}catch(e){}};
+const ov=h=>{$("#ov").innerHTML=h;$("#ov").style.display=h?"flex":"none"};
+const fit=()=>{$("#app").style.fontSize=$("#app").clientWidth/480*16+"px"};addEventListener("resize",fit);fit();
+
+function menu(){mode="menu";g=null;ov(`<div class="card"><h1>🚀 Uzay Kaşifi</h1><p>Soruyu oku, <b>doğru cevabın gezegenine</b> uç!<br>Bir cevaba <b>dokun</b>, roket yukarı uçup o cevabı seçsin, sonra aşağı dönsün. Fareyle ya da sağ-sol ok tuşlarıyla da oynayabilirsin.</p><p>☀️ 🌙 🌍 💪 🌀 ⚖️ 🛷<br><small>50 doğru cevap ver, Uzay Kaşifi ol!<br>5 canın var, her 10 doğruda +1 can.</small></p><button class="b" id="go">▶ Oyna</button><div class="sk">${SK.map((e,i)=>`<button data-i="${i}" class="${S.skin===i?"on":""}" ${S.total<SKP[i]?"disabled":""}>${S.total<SKP[i]?"🔒<br>"+SKP[i]:e}</button>`).join("")}</div><small>Roket seç · 🔒 toplam puanla açılır<br>En yüksek: ${S.best} · Toplam puan: ${S.total}</small></div>`);
+  $("#go").onclick=newGame;document.querySelectorAll(".sk button").forEach(b=>b.onclick=()=>{S.skin=+b.dataset.i;save();menu()})}
+function newGame(){g={score:0,hp:5,streak:0,ans:0,wrong:[0,0,0,0,0,0,0],q:sh(Q.map((_,i)=>i)),ok:0,cur:null,b:[],x:W/2,y:H-80,pause:false};tx=W/2;ty=H-80;nextQ();mode="play";ov("");startMusic();beep(520,.1)}
+function nextQ(){if(!g.q.length){win();return}g.cur=Q[g.q.pop()];
+  const o=sh([[g.cur[2],1],...sh(g.cur[3]).slice(0,2).map(t=>[t,0])]);g.b=o.map((a,i)=>({x:LX[i],y:190,t:a[0],ok:a[1],c:i}))}
+const burst=(x,y,c)=>{for(let i=0;i<18;i++)parts.push({x,y,vx:(Math.random()-.5)*320,vy:(Math.random()-.5)*320,l:.6,c})};
+function resolve(ok,late){g.tgt=null;ty=H-80;
+  if(ok){g.streak++;g.ans++;g.ok++;if(g.ok%10===0&&g.hp<5)g.hp++;const m=1+Math.floor(g.streak/3);g.score+=10*m;burst(g.x,g.y-20,"#4ade80");parts.push({x:g.x,y:g.y-50,vx:0,vy:-60,l:.9,t:"+"+10*m,c:"#fde047"});beep(660,.1);setTimeout(()=>beep(880,.14),90);if(g.ok>=50)win();else nextQ()}
+  else{g.hp--;g.streak=0;g.wrong[g.cur[0]]++;g.pause=true;g.b=[];burst(g.x,g.y-20,"#f87171");beep(150,.35,"sawtooth");
+    const t=TN[g.cur[0]];ov(`<div class="card"><span class="chip">${t[0]} ${t[1]}</span><h1>${late?"⏰ Geç kaldın!":"❌ Olmadı!"}</h1><p>${g.cur[1]}</p><p class="big">Doğru cevap: <b>${g.cur[2]}</b></p><p>💡 ${g.cur[4]}</p><p>${"❤️".repeat(Math.max(g.hp,0))||"💔"}</p><button class="b" id="nx">${g.hp>0?"Devam ▶":"Bitir"}</button></div>`);
+    $("#nx").onclick=()=>{ov("");if(g.hp<=0)end();else{g.ans++;nextQ();g.pause=false}}}}
+function win(){mode="over";g.b=[];const nb=g.score>S.best;if(nb)S.best=g.score;S.total+=g.score;save();beep(523,.15);setTimeout(()=>beep(659,.15),150);setTimeout(()=>beep(784,.35),300);
+  const wt=g.wrong.reduce((a,b)=>a+b,0),r=g.ok/(g.ok+wt),st=r>=.9?"⭐⭐⭐":r>=.7?"⭐⭐":"⭐",m=g.wrong.map((n,i)=>[n,i]).filter(x=>x[0]).sort((a,b)=>b[0]-a[0]).slice(0,3);
+  ov(`<div class="card"><h1>🎉 Tebrikler Uzay Kaşifi!</h1><p class="big"><b>Tüm konuları tamamladın!</b> 🚀</p><p style="font-size:1.8em;margin:.2em">${st}</p><p>Doğru: <b>${g.ok}</b> · Yanlış: <b>${wt}</b> · Puan: <b>${g.score}</b> ${nb?"🏆 Yeni rekor!":""}</p><div class="miss">${m.length?"<b>Biraz daha çalışırsan tam puan:</b><br>"+m.map(x=>`${TN[x[1]][0]} ${TN[x[1]][1]} (${x[0]} yanlış)`).join("<br>"):"🌟 Hiç yanlışın yok, mükemmel!"}</div><button class="b" id="again">Tekrar oyna</button><button class="b" id="mn" style="background:#334155;color:#fff">Menü</button></div>`);
+  $("#again").onclick=newGame;$("#mn").onclick=menu}
+function end(){mode="over";const nb=g.score>S.best;if(nb)S.best=g.score;S.total+=g.score;save();
+  const m=g.wrong.map((n,i)=>[n,i]).filter(x=>x[0]).sort((a,b)=>b[0]-a[0]).slice(0,3);
+  ov(`<div class="card"><h1>🌌 Oyun bitti</h1><p class="big">Puan: <b>${g.score}</b> ${nb?"🏆 Yeni rekor!":""}</p><p><small>En yüksek: ${S.best} · Doğru: ${g.ans}</small></p><div class="miss">${m.length?"<b>Biraz daha çalış:</b><br>"+m.map(x=>`${TN[x[1]][0]} ${TN[x[1]][1]} (${x[0]} yanlış)`).join("<br>"):"🎉 Hiç yanlışın yok!"}</div><button class="b" id="again">Tekrar oyna</button><button class="b" id="mn" style="background:#334155;color:#fff">Menü</button></div>`);
+  $("#again").onclick=newGame;$("#mn").onclick=menu}
+
+const setT=e=>{const r=cv.getBoundingClientRect();tx=(e.clientX-r.left)/r.width*W};cv.addEventListener("pointermove",setT);
+cv.addEventListener("pointerdown",e=>{setT(e);if(g&&mode==="play"&&!g.pause&&g.b.length){g.tgt=g.b.reduce((a,b)=>Math.abs(b.x-tx)<Math.abs(a.x-tx)?b:a)}});
+addEventListener("keydown",e=>keys[e.key.toLowerCase()]=1);addEventListener("keyup",e=>keys[e.key.toLowerCase()]=0);
+
+function wrap(t,x,y,mw,lh){const w=t.split(" ");let l="",ls=[];w.forEach(s=>{const n=l?l+" "+s:s;if(cx.measureText(n).width>mw&&l){ls.push(l);l=s}else l=n});ls.push(l);const y0=y-(ls.length-1)*lh/2;ls.forEach((s,i)=>cx.fillText(s,x,y0+i*lh))}
+function update(dt){
+  stars.forEach(s=>{s.y+=s.s*(mode==="play"&&!g.pause?60:20)*dt;if(s.y>H){s.y=0;s.x=Math.random()*W}});
+  parts.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.l-=dt});parts=parts.filter(p=>p.l>0);
+  if(mode!=="play"||g.pause)return;
+  if(keys.arrowleft||keys.a)tx-=420*dt;if(keys.arrowright||keys.d)tx+=420*dt;tx=Math.max(40,Math.min(W-40,tx));
+  if(g.tgt&&g.b.includes(g.tgt)){tx=g.tgt.x;ty=g.tgt.y}else{g.tgt=null;ty=H-80}
+  g.x+=(tx-g.x)*Math.min(1,dt*14);g.y+=(ty-g.y)*Math.min(1,dt*14);
+  if(Math.random()<.6)parts.push({x:g.x+(Math.random()-.5)*10,y:g.y+25,vx:(Math.random()-.5)*30,vy:130,l:.3,c:"#fb923c"});
+  const sp=Math.min(34+g.ans*.5,50);
+  for(const b of g.b){b.y+=sp*dt;if(Math.abs(b.x-g.x)<92&&Math.abs(b.y-g.y)<61){resolve(b.ok);return}}
+  if(g.b[0]&&g.b[0].y>H+45){if(g.b.some(b=>b.ok))resolve(false,true)}}
+function draw(){
+  const tc=g&&mode!=="menu"?TN[g.cur[0]][2]:"#1e1b4b",gr=cx.createLinearGradient(0,0,0,H);gr.addColorStop(0,tc);gr.addColorStop(1,"#020617");cx.fillStyle=gr;cx.fillRect(0,0,W,H);
+  cx.fillStyle="#fff";stars.forEach(s=>{cx.globalAlpha=.4+s.s/4;cx.fillRect(s.x,s.y,s.s,s.s)});cx.globalAlpha=1;
+  if(!g)return;
+  cx.textAlign="center";cx.textBaseline="middle";
+  g.b.forEach(b=>{cx.fillStyle=LC[b.c];cx.strokeStyle="#fff";cx.lineWidth=2.5;cx.beginPath();cx.roundRect(b.x-70,b.y-37,140,74,20);cx.fill();cx.stroke();cx.fillStyle="#fff";cx.font="bold 16px system-ui,sans-serif";wrap(b.t,b.x,b.y,122,19)});
+  if(mode==="play"){cx.font="46px serif";cx.save();cx.translate(g.x,g.y);if(SK[S.skin]==="🚀")cx.rotate(-Math.PI/4);cx.fillText(SK[S.skin],0,0);cx.restore()}
+  parts.forEach(p=>{cx.globalAlpha=Math.max(p.l,0);cx.fillStyle=p.c;if(p.t){cx.font="bold 26px system-ui,sans-serif";cx.fillText(p.t,p.x,p.y)}else{cx.beginPath();cx.arc(p.x,p.y,4,0,7);cx.fill()}});cx.globalAlpha=1;
+  cx.fillStyle="rgba(2,6,23,.75)";cx.strokeStyle="#22d3ee";cx.lineWidth=2;cx.beginPath();cx.roundRect(10,8,W-20,92,16);cx.fill();cx.stroke();
+  const t=TN[g.cur[0]];cx.fillStyle="#7dd3fc";cx.font="13px system-ui,sans-serif";cx.fillText(t[0]+" "+t[1]+"  ·  Doğru "+g.ok+"/50",W/2,24);
+  cx.fillStyle="#fff";cx.font="bold 20px system-ui,sans-serif";wrap(g.cur[1],W/2,63,430,25);
+  cx.font="bold 17px system-ui,sans-serif";cx.textAlign="left";cx.fillText("⭐ "+g.score,16,124);cx.textAlign="center";cx.fillText(g.streak>=3?"🔥 x"+(1+Math.floor(g.streak/3))+" seri "+g.streak:"Seri: "+g.streak,W/2,124);cx.textAlign="right";cx.fillText("❤️".repeat(Math.max(g.hp,0)),W-16,124)}
+/* ===== MÜZİK: kodla üretilen, org benzeri pad + arpej ===== */
+const CH=[[110,164.81,220,261.63,329.63],[87.31,130.81,174.61,220,261.63],[130.81,196,261.63,329.63,392],[98,146.83,196,246.94,293.66]];
+let mOn=false,mg,pm,nextC=0,nextA=0,ci=0,ai=0,cl=[];
+function pad(f5,t){const c=ac;f5.forEach(f=>[-6,6].forEach(dt=>{const o=c.createOscillator(),fl=c.createBiquadFilter(),v=c.createGain();o.type="sawtooth";o.frequency.value=f;o.detune.value=dt;fl.type="lowpass";fl.frequency.value=600;v.gain.setValueAtTime(0,t);v.gain.linearRampToValueAtTime(.016,t+1);v.gain.setValueAtTime(.016,t+4);v.gain.linearRampToValueAtTime(0,t+6.5);o.connect(fl);fl.connect(v);v.connect(mg);o.start(t);o.stop(t+6.6)}))}
+function tone(f,t){const c=ac,o=c.createOscillator(),v=c.createGain();o.type="sine";o.frequency.value=f;v.gain.setValueAtTime(0,t);v.gain.linearRampToValueAtTime(.05,t+.02);v.gain.exponentialRampToValueAtTime(.001,t+1.5);o.connect(v);v.connect(mg);o.start(t);o.stop(t+1.6)}
+function bass(f,t){const c=ac,o=c.createOscillator(),fl=c.createBiquadFilter(),v=c.createGain();o.type="sawtooth";o.frequency.value=f;fl.type="lowpass";fl.frequency.value=380;v.gain.setValueAtTime(0,t);v.gain.linearRampToValueAtTime(.1,t+.01);v.gain.exponentialRampToValueAtTime(.001,t+.4);o.connect(fl);fl.connect(v);v.connect(mg);o.start(t);o.stop(t+.45)}
+function kick(t){const c=ac,o=c.createOscillator(),v=c.createGain();o.frequency.setValueAtTime(130,t);o.frequency.exponentialRampToValueAtTime(40,t+.12);v.gain.setValueAtTime(.3,t);v.gain.exponentialRampToValueAtTime(.001,t+.22);o.connect(v);v.connect(pm);o.start(t);o.stop(t+.25)}
+let NB;function hat(t){const c=ac;if(!NB){NB=c.createBuffer(1,c.sampleRate*.1,c.sampleRate);const d=NB.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1}const s=c.createBufferSource(),hp=c.createBiquadFilter(),v=c.createGain();s.buffer=NB;hp.type="highpass";hp.frequency.value=7000;v.gain.setValueAtTime(.05,t);v.gain.exponentialRampToValueAtTime(.001,t+.06);s.connect(hp);hp.connect(v);v.connect(pm);s.start(t)}
+function sched(){const c=ac,t=c.currentTime;if(nextC<t-1)nextC=t+.1;if(nextA<t-1)nextA=t+.1;
+  while(nextC<t+1){cl.push({t:nextC,k:ci%4});if(cl.length>4)cl.shift();pad(CH[ci%4],nextC);ci++;nextC+=4}
+  while(nextA<t+1){let k=0;cl.forEach(x=>{if(x.t<=nextA)k=x.k});if(ai%2===0){bass(CH[k][0],nextA);kick(nextA)}else hat(nextA);tone(CH[k][[2,3,4,3,2,3,4,3][ai%8]]*2,nextA);ai++;nextA+=.25}}
+function startMusic(){if(mOn)return;try{ac=ac||new AudioContext();if(ac.state==="suspended")ac.resume();const c=ac,rv=c.createConvolver(),wet=c.createGain(),n=c.sampleRate*3,b=c.createBuffer(2,n,c.sampleRate);
+  for(let k=0;k<2;k++){const d=b.getChannelData(k);for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/n,2.5)}
+  rv.buffer=b;wet.gain.value=.7;mg=c.createGain();mg.gain.value=S.mute?0:.9;mg.connect(c.destination);mg.connect(rv);pm=c.createGain();pm.gain.value=S.mute?0:.9;pm.connect(c.destination);const dl=c.createDelay(),fb=c.createGain();dl.delayTime.value=.375;fb.gain.value=.3;mg.connect(dl);dl.connect(fb);fb.connect(dl);dl.connect(c.destination);rv.connect(wet);wet.connect(c.destination);
+  nextC=c.currentTime+.1;nextA=nextC+3;mOn=true;sched();setInterval(sched,200)}catch(e){}}
+$("#mu").textContent=S.mute?"🔇":"🔊";
+$("#mu").onclick=()=>{S.mute=!S.mute;save();$("#mu").textContent=S.mute?"🔇":"🔊";startMusic();if(mg){mg.gain.setTargetAtTime(S.mute?0:.9,ac.currentTime,.1);pm.gain.setTargetAtTime(S.mute?0:.9,ac.currentTime,.1)}};
+let last=performance.now();
+function loop(n){const dt=Math.min((n-last)/1000,.05);last=n;update(dt);draw();requestAnimationFrame(loop)}
+menu();requestAnimationFrame(loop);
+</script>
+</body>
+</html>
